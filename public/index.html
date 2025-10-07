@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jogo da Memória Pokémon</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f7f7f7;
+    }
+
+    h1 {
+      margin-top: 20px;
+      color: #ff0000;
+      text-shadow: 1px 1px #000;
+    }
+
+    #game-board {
+      display: grid;
+      grid-template-columns: repeat(4, 100px);
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    .card {
+      width: 100px;
+      height: 100px;
+      background-color: #eee;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      position: relative;
+      perspective: 1000px;
+    }
+
+    .card-inner {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.5s;
+      transform-style: preserve-3d;
+    }
+
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 10px;
+    }
+
+    .card-front {
+      background-color: #ffcb05;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 40px;
+    }
+
+    .card-back {
+      background-color: #3b4cca;
+      transform: rotateY(180deg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .card-back img {
+      width: 60px;
+      height: 60px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Jogo da Memória Pokémon</h1>
+  <div id="game-board"></div>
+
+  <script>
+    const API_URL = "http://localhost:3000"; // Sua API rodando local
+    const pokemons = [
+      { name: "pikachu", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png" },
+      { name: "bulbasaur", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png" },
+      { name: "charmander", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png" },
+      { name: "squirtle", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png" },
+      { name: "eevee", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/133.png" },
+      { name: "jigglypuff", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/39.png" },
+      { name: "snorlax", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/143.png" },
+      { name: "mewtwo", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/150.png" }
+    ];
+
+    const gameBoard = document.getElementById("game-board");
+
+    // Funções para API
+    async function createGame(title) {
+      const res = await fetch(`${API_URL}/games`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title })
+      });
+      return res.json();
+    }
+
+    async function createMove(gameId, moveName) {
+      const res = await fetch(`${API_URL}/moves`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId, move: moveName })
+      });
+      return res.json();
+    }
+
+    // Criar jogo novo no backend
+    let currentGame = null;
+    async function startGame() {
+      currentGame = await createGame("Pokémon Memory");
+    }
+
+    startGame();
+
+    // Criar deck duplicado e embaralhado
+    let deck = [...pokemons, ...pokemons].sort(() => Math.random() - 0.5);
+
+    let firstCard = null;
+    let secondCard = null;
+    let lockBoard = false;
+
+    deck.forEach(pokemon => {
+      const card = document.createElement("div");
+      card.classList.add("card");
+      card.dataset.pokemon = pokemon.name;
+
+      card.innerHTML = `
+        <div class="card-inner">
+          <div class="card-front">?</div>
+          <div class="card-back"><img src="${pokemon.img}" alt="${pokemon.name}"></div>
+        </div>
+      `;
+
+      card.addEventListener("click", async () => {
+        if (lockBoard || card === firstCard) return;
+
+        card.classList.add("flipped");
+
+        if (!firstCard) {
+          firstCard = card;
+          return;
+        }
+
+        secondCard = card;
+        lockBoard = true;
+
+        const firstPokemon = firstCard.dataset.pokemon;
+        const secondPokemon = secondCard.dataset.pokemon;
+
+        // Salvar movimentos no backend
+        if (currentGame) {
+          await createMove(currentGame.id, firstPokemon);
+          await createMove(currentGame.id, secondPokemon);
+        }
+
+        if (firstPokemon === secondPokemon) {
+          firstCard = null;
+          secondCard = null;
+          lockBoard = false;
+        } else {
+          setTimeout(() => {
+            firstCard.classList.remove("flipped");
+            secondCard.classList.remove("flipped");
+            firstCard = null;
+            secondCard = null;
+            lockBoard = false;
+          }, 1000);
+        }
+      });
+
+      gameBoard.appendChild(card);
+    });
+  </script>
+</body>
+</html>

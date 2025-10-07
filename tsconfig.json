@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "es2020",               // Versão do JS gerado
+    "module": "commonjs",             // Para Node
+    "outDir": "dist",                 // Para onde o JS compilado vai
+    "rootDir": "src",                 // De onde o TS vai pegar os arquivos
+    "strict": true,                   // Ativa verificações rigorosas
+    "esModuleInterop": true,          // Compatibilidade com import/export
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.ts"],         // Todos os TS dentro de src
+  "exclude": ["node_modules", "dist"]
+}
